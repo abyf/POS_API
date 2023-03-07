@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %} MAKE A PAYMENT {% endblock %}
+
+{% block content %}
+ 
+  <h1>PAYMENT PROCESSING</h1>
+  <br/><br/>
+  <center>
+  <div class="form-group">
+	  <form method="post" action="">
+	     {% csrf_token %}
+	     {{ form.as_p}}
+	     <button type="submit" class="btn btn-secondary">Submit Payment</button>
+          </form>
+  </div>
+  </center>   
+{% endblock %}
+
