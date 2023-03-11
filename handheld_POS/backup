@@ -1,0 +1,19 @@
+
+        
+ """       if request.method == 'POST':
+            form = PaymentForm(request.POST)
+        if form.is_valid():
+            amount = float(form.cleaned_data['amount'])
+            card_id = form.cleaned_data['card_id']
+            data = {'amount':amount,'card_id': card_id,}
+            try:
+                form.detect_card()
+            except forms.ValidationError as e:
+                form.add_error(None,e)
+            #else:
+              #  return render (request,'success.html',{'card_id': form.cleaned_data['card_id']})
+    else:
+        
+        form = PaymentForm()
+        
+    return render(request, 'payment.html', {'form': form})"""

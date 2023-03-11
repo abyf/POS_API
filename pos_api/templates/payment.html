@@ -1,14 +1,21 @@
 {% extends 'base.html' %}
 
-{% block title %} MAKE A PAYMENT {% endblock %}
+
+
 
 {% block content %}
+
+
+
+{% if error_msg %}
+<div class="alert alert-danger">{{ error_msg }}</div>
+{% endif %}
  
   <h1>PAYMENT PROCESSING</h1>
   <br/><br/>
   <center>
   <div class="form-group">
-	  <form method="post" action="">
+	  <form method="post" action="{% url 'payment' %}">
 	     {% csrf_token %}
 	     {{ form.as_p}}
 	     <button type="submit" class="btn btn-secondary">Submit Payment</button>

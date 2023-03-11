@@ -31,7 +31,7 @@ class Payment(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.amount}"
+        return '{amount}: {paid_to}'.format(amount =self.amount,paid_to=self.merchant_id)
 
 class Transaction(models.Model):
     cardholder_id = models.ForeignKey(CardHolder,on_delete=models.SET_NULL, null=True, blank=True)
