@@ -15,10 +15,11 @@
   <br/><br/>
   <center>
   <div class="form-group">
-	  <form method="post" action="{% url 'payment' %}">
+	  <form method="post">
 	     {% csrf_token %}
 	     {{ form.as_p}}
 	     <button type="submit" class="btn btn-secondary">Submit Payment</button>
+	     <a href="{% url 'logout' %}" class="btn btn-secondary">Logout</a>
           </form>
   </div>
   </center>   
