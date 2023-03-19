@@ -57,4 +57,6 @@ class PaymentView(APIView):
         #serializer = PaymentSerializer(payment)
         
         return render(request, 'success.html',{'form': form})
+        
+
 

@@ -1,5 +1,8 @@
 from django.contrib import admin
 from .models import CardHolder,Merchant
-# Register your models here.
+from members.models import User
+
+
 admin.site.register(CardHolder)
 admin.site.register(Merchant)
+admin.site.register(User)

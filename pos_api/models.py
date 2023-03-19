@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils import timezone
+from members.models import User
+from django.conf import settings
 
 
 class CardHolder(models.Model):
@@ -14,6 +16,7 @@ class CardHolder(models.Model):
         return "{name}:{card_id}".format(name=self.name,card_id=self.card_id)
 
 class Merchant(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     phone = models.CharField(max_length=20, unique=True)
     reader_id = models.CharField(max_length=15,unique=True)
@@ -22,7 +25,8 @@ class Merchant(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return "{name}:{reader_id}".format(name=self.name,reader_id=self.reader_id)
+        return "{name}:{phone}".format(name=self.name,phone=self.phone)
+        
 
 class Payment(models.Model):
     card_id = models.ForeignKey(CardHolder,on_delete=models.CASCADE,to_field='card_id')
@@ -30,7 +34,7 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=250,decimal_places=2,default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-
+    
     def __str__(self):
         return '{amount}: {paid_to}'.format(amount =self.amount,paid_to=self.merchant_id)
 
@@ -47,6 +51,7 @@ class Transaction(models.Model):
 
     def __str__(self):
         return '{from_}: {to}'.format(from_=self.cardholder_id,to=self.merchant_id)
+
 
 
     
