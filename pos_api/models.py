@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class CardHolder(models.Model):
@@ -13,6 +14,7 @@ class CardHolder(models.Model):
         return "{name}:{card_id}".format(name=self.name,card_id=self.card_id)
 
 class Merchant(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     phone = models.CharField(max_length=20, unique=True)
     reader_id = models.CharField(max_length=15,unique=True)
@@ -21,7 +23,7 @@ class Merchant(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return "{name}:{reader_id}".format(name=self.name,reader_id=self.reader_id)
+        return "{name}:{phone}".format(name=self.name,phone=self.phone)
 
 class Payment(models.Model):
     card_id = models.ForeignKey(CardHolder,on_delete=models.CASCADE,to_field='card_id')

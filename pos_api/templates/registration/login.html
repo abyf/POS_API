@@ -1,13 +1,8 @@
 {% extends 'base.html' %}
 
-{% if not user.is_authenticated %}
-  <a href="{% url 'login' %}">Log in</a>
-{% else%}
-
- {% block title %} MAKE A PAYMENT {% endblock %}
  {% block content %}
-  <h1>PAYMENT PROCESSING</h1>
 
+  <h1>Login</h1>
   {% if messages %}
     {% for message in messages %}
      < div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -20,13 +15,12 @@
   <br/><br/>
   <center>
   <div class="form-group">
-	  <form method="post" action="">
-	     {% csrf_token %}
+	  <form method="post">
+             {% csrf_token %}
 	     {{ form.as_p}}
-	     <button type="submit" class="btn btn-secondary">Submit Payment</button>
+	     <button type="submit" class="btn btn-secondary">Login</button>
           </form>
   </div>
   </center>   
-  {% endblock %}
-{% endif %}
+{% endblock %}
 
