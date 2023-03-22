@@ -3,7 +3,8 @@ from django.contrib import messages
 from .forms import PaymentForm
 from django.urls import reverse
 from django.shortcuts import redirect
-from .models import Merchant
+from .models import Merchant, CardHolder, Payment
+from .serializers import CardHolderSerializer, MerchantSerializer
 
 def PaymentView(request):
     if not request.user.is_authenticated:
@@ -19,9 +20,35 @@ def PaymentView(request):
         if request.method == 'POST':
             form = PaymentForm(request.POST)
             if form.is_valid():
-                form.save(merchant)
-                messages.success(request,f'Welcome {merchant.name}!')
-                return redirect(reverse('payment'))
+                card_id = form.cleaned_data['card_id']
+                amount = form.cleaned_data['amount']
+
+                try:
+                    cardholder = CardHolder.objects.get(card_id=card_id)
+                except CardHolder.DoesNotExist:
+                    messages.error(request,'Invalid card ID')
+                    return redirect(reverse('payment'))
+
+                if cardholder.balance < amount:
+                    messages.error(request,'Insufficient funds')
+                    return redirect(reverse('payment'))
+
+                cardholder.balance -= amount
+                cardholder.save()
+
+                merchant.balance += amount
+                merchant.save()
+
+                Payment.objects.create(
+                        card_id=cardholder,
+                        reader_id=merchant,
+                        amount=amount
+                        )
+                messages.success(request, f'Transaction successful. Your balance is {merchant.balance}.')
+                
         else:
             form = PaymentForm()
-        return render(request, 'payment.html', {'form': form, 'merchant': merchant})
+        return render(request, 'payment.html', {
+            'form': form, 
+            'merchant': merchant,
+            'cardholders': CardHolderSerializer(CardHolder.objects.all(), many=True).data})
