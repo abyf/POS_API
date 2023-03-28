@@ -13,11 +13,11 @@ class MerchantSerializer(serializers.ModelSerializer):
 		fields = ('wallet_id','balance')
 
 class PaymentSerializer(serializers.ModelSerializer):
-	#card_info = serializers.CharField(max_length=100,required=True)
+	card_info = serializers.UUIDField(required=True)
 
 	class Meta:
 		model = Payment
-		fields = ('card_id','qr_code','amount')
+		fields = ('amount','card_info','wallet_id')
 
 class TransactionSerializer(serializers.ModelSerializer):
 	class Meta:
