@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_tags %}
 
  {% block content %}
 
@@ -8,7 +9,8 @@
   <center>
   <div class="form-group">
 	  <form method="post">
-             {% csrf_token %}
+       {% csrf_token %}
+       {% my_error_messages %}
 	     {{ form.as_p}}
 	     <button type="submit" class="btn btn-secondary">Login</button>
           </form>

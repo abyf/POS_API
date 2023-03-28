@@ -1,9 +1,39 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from .forms import PaymentForm
+from .forms import PaymentForm, MerchantAuthenticationForm
+from django.contrib.auth.views import LoginView
 from django.urls import reverse
 from .models import Merchant, CardHolder, Payment
 from .serializers import CardHolderSerializer, MerchantSerializer
+
+class MyLoginView(LoginView):
+    template_name = 'registration/login.html'
+    form_class = MerchantAuthenticationForm
+
+    def form_valid(self,form):
+        username = form.cleaned_data.get('username')
+        password = form.cleaned_data.get('password')
+        user = authenticate(self.request, username=username,password=password)
+        if user is not None and user.is_active:
+            try:
+                merchant = Merchant.objects.get(user=user)
+                login(self.request, user)
+                return redirect(reverse('payment'))
+            except Merchant.DoesNotExist:
+                messages.error(self.request, 'Unknown Merchant!!!')
+        else:
+            messages.error(self.request, 'Please a correct username and password!!!')
+    #    if not Merchant.objects.filter(user=self.request.user).exist():
+    #        form.add_error(None,'Unknown User, Please register a merchant account at the nearest counter')
+    #    else:
+    #        form.add_error(None,'Please enter a correct username and password.')
+
+        return super().form_invalid(form)
+
+    def form_invalid(self,form):
+        print('form is invalid')
+        messages.error(self.request,'Unknown User ......')
+        return super().form_invalid(form)
 
 def PaymentView(request):
     if not request.user.is_authenticated:
@@ -29,7 +59,8 @@ def PaymentView(request):
                 return redirect(reverse('payment'))
 
     else:
-        form = PaymentForm()
+        initial = {'wallet_id': merchant.wallet_id}
+        form = PaymentForm(initial=initial)
 
     success = request.GET.get('success')
     context = {'form':form,'merchant':merchant,'success':success}
