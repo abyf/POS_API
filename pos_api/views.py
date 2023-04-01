@@ -15,12 +15,15 @@ class MyLoginView(LoginView):
         password = form.cleaned_data.get('password')
         user = authenticate(self.request, username=username,password=password)
         if user is not None and user.is_active:
-            try:
-                merchant = Merchant.objects.get(user=user)
-                login(self.request, user)
-                return redirect(reverse('payment'))
-            except Merchant.DoesNotExist:
-                messages.error(self.request, 'Unknown Merchant!!!')
+            if hasattr(user,'merchant'):
+                try:
+                    merchant = Merchant.objects.get(user=user)
+                    login(self.request, user)
+                    return redirect(reverse('payment'))
+                except Merchant.DoesNotExist:
+                    messages.error(self.request, 'Unknown Merchant!!!')
+            else:
+                messages.error('Merchant Does not Exist! Please register an account at the nearest office counter')
         else:
             messages.error(self.request, 'Please a correct username and password!!!')
     #    if not Merchant.objects.filter(user=self.request.user).exist():
@@ -31,9 +34,15 @@ class MyLoginView(LoginView):
         return super().form_invalid(form)
 
     def form_invalid(self,form):
-        print('form is invalid')
-        messages.error(self.request,'Unknown User ......')
-        return super().form_invalid(form)
+        response = super().form_invalid(form)
+        if 'Please enter a correct username and password.' in str(response.content):
+            username = form.cleaned_data.get('username')
+            try:
+                merchant = form.cleaned_data.get(user__username=username)
+            except Merchant.DoesNotExist:
+                messages.error(self.request,"Merchant Does not Exist! Please register an account at the nearest office counter")
+                return self.render_to_response(self.get_context_data(form=form))
+        return response
 
 def PaymentView(request):
     if not request.user.is_authenticated:
