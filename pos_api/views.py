@@ -26,10 +26,6 @@ class MyLoginView(LoginView):
                 messages.error('Merchant Does not Exist! Please register an account at the nearest office counter')
         else:
             messages.error(self.request, 'Please a correct username and password!!!')
-    #    if not Merchant.objects.filter(user=self.request.user).exist():
-    #        form.add_error(None,'Unknown User, Please register a merchant account at the nearest counter')
-    #    else:
-    #        form.add_error(None,'Please enter a correct username and password.')
 
         return super().form_invalid(form)
 
@@ -60,7 +56,13 @@ def PaymentView(request):
         form = PaymentForm(request.POST)
         if form.is_valid():
             try:
-                form.charge_and_credit(merchant)
+                cardholder = form.charge_and_credit(merchant)
+
+                payment = form.save(commit=False)
+                payment.merchant_id = merchant
+                payment.cardholder_id = cardholder
+                payment.save()
+
                 messages.success(request, 'Payment processed successfully')
                 return redirect(reverse('payment') + '?success=true')
             except Exception as e:
@@ -76,3 +78,6 @@ def PaymentView(request):
     if success:
         context['success'] = True
     return render(request, 'payment.html', context)
+
+def homepage(request):
+    return render(request,'homepage.html',{})

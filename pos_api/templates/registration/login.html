@@ -3,17 +3,21 @@
 
  {% block content %}
 
-  <h1>Login</h1>
-
-  <br/><br/>
-  <center>
-  <div class="form-group">
-	  <form method="post">
+  <h2 class="text-center">Login</h2>
+  <br><br>
+  <div class="text-center">
+	  <div class="col-md-6 offset-md-3">
+      <form method="POST">
        {% csrf_token %}
        {% my_error_messages %}
-	     {{ form.as_p}}
-	     <button type="submit" class="btn btn-secondary">Login</button>
-          </form>
-  </div>
-  </center>
+       <div class="form-group">
+         <input type="text" class="form-control" placeholder="Enter Username" name="username">
+       </div>
+       <div class="form-group">
+         <input type="password" class="form-control" placeholder="Enter Password" name="password">
+       </div>
+       <button type="submit" class="btn btn-secondary">Login</button>
+       <a href="{% url 'logout' %}" class="btn btn-secondary">Home</a>
+      </form>
+   </div>
 {% endblock %}
