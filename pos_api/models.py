@@ -7,7 +7,7 @@ from django.contrib.auth.models import User, Group
 class Manager(models.Model):
     username = models.CharField(max_length=120, unique=True)
     name = models.CharField(max_length=120)
-    phone = models.CharField(max_length=120)
+    phone = models.CharField(max_length=120,null=True, blank=True)
     email = models.EmailField(max_length=120,null=True, blank=True)
     cardholder_commission = models.DecimalField(max_digits=10,decimal_places=2,default=0,editable=False)
     merchant_commission = models.DecimalField(max_digits=10,decimal_places=2,default=0,editable=False)
@@ -21,16 +21,17 @@ class Manager(models.Model):
 class Administrator(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='administrators')
     name = models.CharField(max_length=120)
-    phone = models.CharField(max_length=120)
+    phone = models.CharField(max_length=120,null=True, blank=True)
     address = models.CharField(max_length=250, null=True, blank=True)
     email = models.EmailField(max_length=120,null=True, blank=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
     group = models.ForeignKey(Group, on_delete=models.CASCADE,default=1)
 
     def __str__(self):
-        return "{name}:{phone}".format(name=self.name,phone=self.phone)
+        return "{name}".format(name=self.name)
 
     def save(self,*args,**kwargs):
         if not self.pk:
@@ -54,6 +55,7 @@ class CardHolder(models.Model):
     balance = models.DecimalField(max_digits=10,decimal_places=2,default=0,editable=False)
     qr_code_img = models.ImageField(upload_to='qr_codes/',null=True,blank=True)
     is_active = models.BooleanField(default=True)
+    administrator = models.ForeignKey(Administrator, on_delete=models.SET_NULL,null=True,blank=True, verbose_name='Created_by')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
@@ -86,6 +88,8 @@ class Merchant(models.Model):
     wallet_id = models.UUIDField(default=uuid.uuid4,editable=False, unique=True)
     alias = models.CharField(max_length=8,unique=True,editable=False)
     balance = models.DecimalField(max_digits=250,decimal_places=2,default=0,editable=False)
+    is_active = models.BooleanField(default=True)
+    administrator = models.ForeignKey(Administrator, on_delete=models.SET_NULL,null=True,blank=True,verbose_name='Created_by')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
@@ -109,19 +113,19 @@ class Merchant(models.Model):
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = [('load','Load'),('withdraw','Withdraw')]
+    transaction_type = models.CharField(choices=TRANSACTION_TYPES,max_length=10)
     cardholder_alias = models.CharField(max_length=8,null=True,blank=True)
-    merchant_alias = models.CharField(max_length=8,null=True,blank=True)
     card_id = models.UUIDField(null=True, blank=True)
     qr_code = models.UUIDField(null=True, blank=True)
+    merchant_alias = models.CharField(max_length=8,null=True,blank=True)
     amount = models.DecimalField(max_digits=250,decimal_places=2,null=True, blank=True)
-    message = models.CharField(max_length=1000, blank=True)
-    transaction_type = models.CharField(choices=TRANSACTION_TYPES,max_length=10)
+    administrator = models.ForeignKey(Administrator, on_delete=models.SET_NULL,null=True,blank=True,verbose_name='Performed_by')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
     def get_name(self):
         if self.cardholder_alias:
-            return CardHolder.objects.get(cardholder_alias=self.cardholder_alias).name
+            return CardHolder.objects.get(alias=self.cardholder_alias).name
         elif self.card_id:
             return CardHolder.objects.get(card_id=self.card_id).name
         elif self.qr_code:
@@ -157,7 +161,7 @@ class Transaction(models.Model):
 class Payment(models.Model):
     card_id = models.UUIDField(null=True, blank=True)
     qr_code = models.UUIDField(null=True, blank=True)
-    wallet_id = models.ForeignKey(Merchant,on_delete=models.CASCADE,to_field='wallet_id')
+    wallet_id = models.ForeignKey(Merchant,on_delete=models.CASCADE,to_field='wallet_id',verbose_name='To_Merchant')
     amount = models.DecimalField(max_digits=250,decimal_places=2,default=0)
     commission_fee = models.DecimalField(max_digits=250,decimal_places=2,default=0)
     created_at = models.DateTimeField(auto_now_add=True)

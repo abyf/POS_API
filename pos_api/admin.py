@@ -29,26 +29,43 @@ class AdministratorAdmin(admin.ModelAdmin):
     list_display = ('id','name','phone','address','email','created_at', 'modified_at')
 
 class CardHolderAdmin(admin.ModelAdmin):
-    list_display = ('id','name','phone','email','card_id','qr_code','balance','alias','created_at', 'modified_at')
     readonly_fields = ('qr_code_img',)
 
     def get_list_display(self,request):
         if request.user.is_superuser:
-            return('id','name','phone','email','card_id','qr_code','alias','qr_code_img','balance','created_at', 'modified_at')
+            return('id','name','phone','email','card_id','qr_code','alias','qr_code_img','balance','administrator','created_at', 'modified_at')
         else:
-            return('id','name','phone','email','balance','created_at', 'modified_at')
+            return('id','name','phone','email','balance','administrator','created_at', 'modified_at')
+
+    def get_exclude(self,request,obj=None):
+        if obj is None:
+            return('administrator','qr_code_img')
+        return('qr_code_img',)
+
+    def save_model(self,request,obj,form,change):
+        if not change:
+            obj.administrator = Administrator.objects.get(user=request.user)
+        super().save_model(request,obj,form,change)
 
 class MerchantAdmin(admin.ModelAdmin):
-    list_display = ('id','name','phone','email','reader_id','wallet_id','alias','balance','created_at', 'modified_at')
-
     def get_list_display(self,request):
         if request.user.is_superuser:
             return('id','name','phone','email','reader_id','wallet_id','alias','balance','created_at', 'modified_at')
         else:
             return('id','name','phone','email','balance','created_at', 'modified_at')
 
+    def get_exclude(self,request,obj=None):
+        if obj is None:
+            return('administrator',)
+        return()
+
+    def save_model(self,request,obj,form,change):
+        if not change:
+            obj.administrator = Administrator.objects.get(user=request.user)
+        super().save_model(request,obj,form,change)
+
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ['id','transaction_type','name','amount','created_at']
+    list_display = ['id','transaction_type','name','amount','administrator','created_at']
     list_filter = ['transaction_type','created_at']
     search_fields = ['cardholder__card_id','cardholder__qr_code','cardholder__alias','cardholder__name','merchant__alias']
 
@@ -100,6 +117,12 @@ class TransactionAdmin(admin.ModelAdmin):
     ('Merchant Details',{'fields':('merchant_alias',),'classes':('collapse',),'description':'Fill in the alias of the merchant for a withdraw transaction'})
     )
 
+    def save_form(self,request,form,change):
+        obj = super().save_form(request,form,change)
+        if not change:
+            obj.administrator = Administrator.objects.get(user=request.user)
+        return obj
+
     def save_model(self,request,obj,form,change):
         """ Override the default save_model method to allow admins to load or withdraw money from cardholders and merchants"""
         try:
@@ -137,8 +160,15 @@ class TransactionAdmin(admin.ModelAdmin):
             messages.error(request,e.message_dict)
 
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id','card_id','qr_code','wallet_id','amount','commission_fee', 'created_at','modified_at')
+    list_display = ('id','cardholder_name','wallet_id','amount','commission_fee', 'created_at','modified_at')
 
+    def cardholder_name(self,obj):
+        if obj.card_id:
+            return CardHolder.objects.get(card_id=obj.card_id).name
+        elif obj.qr_code:
+            return CardHolder.objects.get(qr_code=obj.qr_code).name
+        else:
+            return "UNKNOWN CARDHOLDER"
 
 admin.site.register(Administrator, AdministratorAdmin)
 admin.site.register(CardHolder,CardHolderAdmin)
