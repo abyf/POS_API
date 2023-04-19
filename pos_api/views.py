@@ -56,13 +56,7 @@ def PaymentView(request):
         form = PaymentForm(request.POST)
         if form.is_valid():
             try:
-                cardholder = form.charge_and_credit(merchant)
-
-                payment = form.save(commit=False)
-                payment.merchant_id = merchant
-                payment.cardholder_id = cardholder
-                payment.save()
-
+                form.charge_and_credit(merchant)
                 messages.success(request, 'Payment processed successfully')
                 return redirect(reverse('payment') + '?success=true')
             except Exception as e:
