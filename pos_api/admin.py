@@ -81,7 +81,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
     def get_merchant_name(self,obj):
         if obj.merchant_alias:
-            return Merchant.objects.get(merchant_alias=obj.merchant_alias).name
+            return Merchant.objects.get(alias=obj.merchant_alias).name
         else:
             return "UNKNOWN MERCHANT"
 
@@ -97,20 +97,6 @@ class TransactionAdmin(admin.ModelAdmin):
         except ValidationError as e:
             self.add_error(None,e)
 
-    def get_fields(self,request,obj=None):
-        fields = ['transaction_type','amount']
-        if obj and obj.transaction_type == 'load':
-            fields += ['cardholder_alias','card_id','qr_code']
-        elif obj and obj.transaction_type == 'withdraw':
-            fields += ['merchant_alias']
-        elif request.method == 'POST':
-            transaction_type = request.POST.get('transaction_type')
-            if transaction_type == 'load':
-                fields += ['cardholder_alias','card_id','qr_code']
-            elif transaction_type == 'withdraw':
-                fields += ['merchant_alias']
-        return fields
-
     fieldsets = (
     ('Transaction Details',{'fields':('transaction_type','amount')}),
     ('Cardholder Details',{'fields':('cardholder_alias','card_id','qr_code'),'classes':('collapse',),'description':'Fill in either the alias, card ID or QR code of the cardholder for a load transaction'}),
@@ -123,38 +109,31 @@ class TransactionAdmin(admin.ModelAdmin):
             obj.administrator = Administrator.objects.get(user=request.user)
         return obj
 
+
     def save_model(self,request,obj,form,change):
         """ Override the default save_model method to allow admins to load or withdraw money from cardholders and merchants"""
+        print("save_model called ?")
         try:
             obj.full_clean()
             if not change:
                 #this is a new transaction
                 if obj.transaction_type == 'load':
                     #The admin is adding money to a cardholder's Account
-                    try:
+                    if obj.cardholder_alias:
+                        cardholder=CardHolder.objects.get(alias=obj.cardholder_alias)
+                    elif obj.card_id:
+                        cardholder=CardHolder.objects.get(card_id=obj.card_id)
+                    elif obj.qr_code:
+                        cardholder = CardHolder.objects.get(qr_code=obj.qr_code)
 
-                        if obj.cardholder_alias:
-                            cardholder=CardHolder.objects.get(alias=obj.cardholder_alias)
-                        elif obj.card_id:
-                            cardholder=CardHolder.objects.get(card_id=obj.card_id)
-                        elif obj.qr_code:
-                            cardholder = CardHolder.objects.get(qr_code=obj.qr_code)
-                        else:
-                            cardholder = None
-                        if cardholder:
-                            cardholder.balance += obj.amount
-                            cardholder.save()
-                        else:
-                            messages.error(request,'No matching cardholder has been found')
-                    except CardHolder.DoesNotExist:
-                        messages.error(request,'No matching cardholder has been found')
+                    cardholder.balance += obj.amount
+                    cardholder.save()
+
                 elif obj.transaction_type == 'withdraw':
-                    try:
                         merchant=Merchant.objects.get(alias=obj.merchant_alias)
                         merchant.balance -= obj.amount
                         merchant.save()
-                    except Merchant.DoesNotExist:
-                        messages.error(request,'No matching merchant has been found')
+
             super().save_model(request,obj,form,change)
         except ValidationError as e:
             messages.error(request,e.message_dict)

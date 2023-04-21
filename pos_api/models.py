@@ -131,28 +131,39 @@ class Transaction(models.Model):
         elif self.qr_code:
             return CardHolder.objects.get(qr_code=self.qr_code).name
         elif self.merchant_alias:
-            return Merchant.objects.get(merchant_alias=self.merchant_alias).name
+            return "The merchant: " + Merchant.objects.get(alias=self.merchant_alias).name
         else:
             return None
 
     def __str__(self):
         name = self.get_name()
         if name:
-            return "{cardholder} credited FCFA {amount} on {date}".format(cardholder=name,amount=self.amount,date=self.created_at.strftime("%Y-%m-%d%H%M%S"))
+            if name.startswith("The merchant: "):
+                return "{merchant} withdrew FCFA {amount} on {date}".format(merchant=name,amount=self.amount,date=self.created_at.strftime("%Y-%m-%d%H%M%S"))
+            else:
+                return "{cardholder} credited FCFA {amount} on {date}".format(cardholder=name,amount=self.amount,date=self.created_at.strftime("%Y-%m-%d%H%M%S"))
         else:
             return "REQUESTER UNKNOWN"
 
     def clean(self):
-        if not any([self.cardholder_alias,self.card_id,self.qr_code]):
-            raise ValidationError("At least one of the fields 'cardholder_alias', 'card_id', or 'qr_code' must be provided.")
-        if self.cardholder_alias and not CardHolder.objects.filter(alias=self.cardholder_alias).exists():
-            raise ValidationError("Cardholder with alias {} does not exist.".format(self.cardholder_alias))
-        if self.merchant_alias and not Merchant.objects.filter(alias=self.merchant_alias).exists():
-            raise ValidationError("Merchant with alias {} does not exist.".format(self.merchant_alias))
-        if self.card_id and not CardHolder.objects.filter(card_id=self.card_id).exists():
-            raise ValidationError("Cardholder with Card ID {} does not exist.".format(self.card_id))
-        if self.qr_code and not CardHolder.objects.filter(qr_code=self.qr_code).exists():
-            raise ValidationError("Cardholder with QR code {} does not exist.".format(self.qr_code))
+        if self.transaction_type == 'load':
+            if not any([self.cardholder_alias,self.card_id,self.qr_code]):
+                raise ValidationError("At least one of the fields 'cardholder_alias', 'card_id', or 'qr_code' must be provided for the load transaction.")
+            if self.cardholder_alias and not CardHolder.objects.filter(alias=self.cardholder_alias).exists():
+                raise ValidationError("Cardholder with alias {} does not exist.".format(self.cardholder_alias))
+            if self.card_id and not CardHolder.objects.filter(card_id=self.card_id).exists():
+                raise ValidationError("Cardholder with Card ID {} does not exist.".format(self.card_id))
+            if self.qr_code and not CardHolder.objects.filter(qr_code=self.qr_code).exists():
+                raise ValidationError("Cardholder with QR code {} does not exist.".format(self.qr_code))
+
+        if self.transaction_type == 'withdraw':
+            if not self.merchant_alias:
+                raise ValidationError("The 'merchant_alias' field must be provided for a withdraw transaction.")
+            if self.merchant_alias and not Merchant.objects.filter(alias=self.merchant_alias).exists():
+                raise ValidationError("Merchant with alias {} does not exist.".format(self.merchant_alias))
+            merchant = Merchant.objects.get(alias=self.merchant_alias)
+            if merchant.balance < self.amount:
+                raise ValidationError("Merchant {} does not have enoungh balance to withdraw the requested amount".format(merchant))
 
     def save(self,*args,**kwargs):
         self.full_clean()
